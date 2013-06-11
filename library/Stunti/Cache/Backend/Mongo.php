@@ -17,7 +17,7 @@ namespace Stunti\Cache\Backend;
  * @copyright  Copyright (c) 2009 Stunti. (http://www.stunti.org)
  * @license    http://stunti.org/license/new-bsd     New BSD License
  */
-class Mongo extends Zend_Cache_Backend implements Zend_Cache_Backend_ExtendedInterface
+class Mongo extends \Zend_Cache_Backend implements \Zend_Cache_Backend_ExtendedInterface
 {
 
     const DEFAULT_HOST = '127.0.0.1';

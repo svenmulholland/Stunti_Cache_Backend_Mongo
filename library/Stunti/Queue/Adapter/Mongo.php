@@ -35,7 +35,7 @@ namespace Stunti\Queue\Adapter;
  * @copyright  Copyright (c) 2005-2009 Zend Technologies USA Inc. (http://www.zend.com)
  * @license    http://framework.zend.com/license/new-bsd     New BSD License
  */
-class Mongo extends Zend_Queue_Adapter_AdapterAbstract
+class Mongo extends \Zend_Queue_Adapter_AdapterAbstract
 {
     const DEFAULT_HOST = '127.0.0.1';
     const DEFAULT_PORT = 27017;
