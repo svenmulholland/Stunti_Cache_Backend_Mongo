@@ -1,13 +1,13 @@
 <?php
+namespace Stunti\Cache\Backend;
+
 /**
  * @see Zend_Cache_Backend
  */
-//require_once 'Zend/Cache/Backend.php';
 
 /**
  * @see Zend_Cache_Backend_ExtendedInterface
  */
-//require_once 'Zend/Cache/Backend/ExtendedInterface.php';
 
 /**
  * @author	   Olivier Bregeras (Stunti) (olivier.bregeras@gmail.com)
@@ -17,20 +17,22 @@
  * @copyright  Copyright (c) 2009 Stunti. (http://www.stunti.org)
  * @license    http://stunti.org/license/new-bsd     New BSD License
  */
-class Stunti_Cache_Backend_Mongo extends Zend_Cache_Backend implements Zend_Cache_Backend_ExtendedInterface
+class Mongo extends Zend_Cache_Backend implements Zend_Cache_Backend_ExtendedInterface
 {
 
     const DEFAULT_HOST = '127.0.0.1';
     const DEFAULT_PORT =  27017;
-    const DEFAULT_PERSISTENT = true;
+    const DEFAULT_PERSISTENT = false;
     const DEFAULT_DBNAME = 'Db_Cache';
     const DEFAULT_COLLECTION = 'C_Cache';
-    
+    const DEFAULT_SLAVE_OK = false;
+    const DEFAULT_REPLICASET = false;
+
     protected $_conn;
     protected $_db;
     protected $_collection;
 
-    
+
     /**
      * Available options
      *
@@ -50,6 +52,8 @@ class Stunti_Cache_Backend_Mongo extends Zend_Cache_Backend implements Zend_Cach
         'persistent' => self::DEFAULT_PERSISTENT,
         'collection' => self::DEFAULT_COLLECTION,
         'dbname'     => self::DEFAULT_DBNAME,
+        'replicaSet' => self::DEFAULT_REPLICASET,
+        'slaveOK'    => self::DEFAULT_SLAVE_OK
     );
 
     /**
@@ -61,15 +65,28 @@ class Stunti_Cache_Backend_Mongo extends Zend_Cache_Backend implements Zend_Cach
             Zend_Cache::throwException('The MongoDB extension must be loaded for using this backend !');
         }
         parent::__construct($options);
-        
+
         // Merge the options passed in; overridding any default options
         $this->_options = array_merge($this->_options, $options);
-        
-        $this->_conn       = new Mongo($this->_options['host'], $this->_options['port'], $this->_options['persistent']);
-        $this->_db         = $this->_conn->selectDB($this->_options['dbname']);
-        $this->_collection = $this->_db->selectCollection($this->_options['collection']);
+
+        try {
+            $persistId         = 'db_' . rand(1, 2);
+
+            if($this->_options['replicaSet'] != false)
+                $this->_conn = new Mongo($this->_options['host'], array('replicaSet' => $this->_options['replicaSet'], 'slaveOkay'=> $this->_options['slaveOK'], "persist" => $persistId));
+            else
+                $this->_conn = new Mongo($this->_options['host'], array( "persist" => $persistId));
+
+            $this->_db         = $this->_conn->selectDB($this->_options['dbname']);
+            $this->_collection = $this->_db->selectCollection($this->_options['collection']);
+
+        }
+        catch(Exception $e)
+        {
+             throw $e;
+        }
     }
-    
+
     /**
      * Expires a record (mostly used for testing purposes)
      * @param string $id
@@ -82,8 +99,8 @@ class Stunti_Cache_Backend_Mongo extends Zend_Cache_Backend implements Zend_Cach
             $tmp['l'] = -10;
             $this->_collection->save($tmp);
         }
-    }    
-    
+    }
+
     /**
      * Test if a cache is available for the given id and (if yes) return it (false else)
      *
@@ -97,12 +114,12 @@ class Stunti_Cache_Backend_Mongo extends Zend_Cache_Backend implements Zend_Cach
         if ($tmp = $cursor->getNext()) {
             if ($doNotTestCacheValidity || !$doNotTestCacheValidity && ($tmp['created_at'] + $tmp['l'])>=time()) {
                 return $tmp['d'];
-            } 
+            }
             return false;
         }
         return false;
     }
-    
+
     /**
      * Test if a cache is available or not (for the given id)
      *
@@ -136,22 +153,22 @@ class Stunti_Cache_Backend_Mongo extends Zend_Cache_Backend implements Zend_Cach
         $flag = 0;
 
         // #ZF-5702 : we try add() first becase set() seems to be slower
-        $result = $this->set($id, $data, $lifetime,$tags);
 
-        return $result;
-    }    
-    
+       $result = $this->set($id, $data, $lifetime,$tags);
+       return $result;
+    }
+
     /**
      * Remove a cache record
      *
      * @param  string $id Cache id
      * @return boolean True if no problem
-     */    
+     */
     public function remove($id)
     {
         return $this->_collection->remove(array('_id' => $id));
-    }    
-    
+    }
+
     /**
      * Clean some cache records (protected method used for recursive stuff)
      *
@@ -184,10 +201,10 @@ class Stunti_Cache_Backend_Mongo extends Zend_Cache_Backend implements Zend_Cach
                 break;
             case Zend_Cache::CLEANING_MODE_MATCHING_TAG:
                 return $this->_collection->remove(array( 't' => array( '$all' => $tags ) ));
-                break;                
+                break;
             case Zend_Cache::CLEANING_MODE_NOT_MATCHING_TAG:
                 return $this->_collection->remove(array( 't' => array( '$nin' => $tags ) ));
-                break;                
+                break;
             case Zend_Cache::CLEANING_MODE_MATCHING_ANY_TAG:
                 //find all tags and remove them
                 //$this->_log(self::TAGS_UNSUPPORTED_BY_CLEAN_OF_MEMCACHED_BACKEND);
@@ -198,7 +215,7 @@ class Stunti_Cache_Backend_Mongo extends Zend_Cache_Backend implements Zend_Cach
                    break;
         }
     }
-        
+
     /**
      * Return true if the automatic cleaning is available for the backend
      *
@@ -207,15 +224,15 @@ class Stunti_Cache_Backend_Mongo extends Zend_Cache_Backend implements Zend_Cach
     public function isAutomaticCleaningAvailable()
     {
         return false;
-    }    
-    
+    }
+
     /**
      * Set the frontend directives
      *
      * @param  array $directives Assoc of directives
      * @throws Zend_Cache_Exception
      * @return void
-     */    
+     */
     public function setDirectives($directives)
     {
         parent::setDirectives($directives);
@@ -239,12 +256,12 @@ class Stunti_Cache_Backend_Mongo extends Zend_Cache_Backend implements Zend_Cach
         }
         return $ret;
     }
-    
+
     /**
      * Return an array of stored tags
      *
      * @return array array of stored tags (string)
-     */    
+     */
     public function getTags() {
         //might have to use map reduce for that (example on Mongodb doc)
 
@@ -264,20 +281,20 @@ class Stunti_Cache_Backend_Mongo extends Zend_Cache_Backend implements Zend_Cach
                                 return { count : total };
                             };
             ';
-        
+
         $res2 = $this->_db->command($cmd);
         $res3 = $this->_db->selectCollection($res2['result'])->find();
-        
+
         $res = array();
         foreach ($res3 as $key => $val) {
             $res[] = $key;
         }
-        
+
         $this->_db->dropCollection($res2['result']);
-        
+
         return $res;
     }
-    
+
     public function drop()
     {
         return $this->_collection->drop();
@@ -290,17 +307,16 @@ class Stunti_Cache_Backend_Mongo extends Zend_Cache_Backend implements Zend_Cach
      *
      * @param array $tags array of tags
      * @return array array of matching cache ids (string)
-     */    
+     */
     public function getIdsMatchingTags($tags = array()) {
         $cursor =  $this->_collection->find(array( 't' => array( '$all' => $tags )));
         $ret = array();
         while ($tmp = $cursor->getNext()) {
             $ret[] = $tmp['_id'];
         }
-        
         return $ret;
     }
-    
+
     /**
      * Return an array of stored cache ids which don't match given tags
      *
@@ -308,18 +324,18 @@ class Stunti_Cache_Backend_Mongo extends Zend_Cache_Backend implements Zend_Cach
      *
      * @param array $tags array of tags
      * @return array array of not matching cache ids (string)
-     */    
+     */
     public function getIdsNotMatchingTags($tags = array()) {
         $cursor =  $this->_collection->find(array( 't' => array( '$nin' => $tags ) ));
         $ret = array();
-        
+
         while ($tmp = $cursor->getNext()) {
             $ret[] = $tmp['_id'];
         }
-        
-        return $ret;        
+
+        return $ret;
     }
-    
+
     /**
      * Return an array of stored cache ids which match any given tags
      *
@@ -327,28 +343,28 @@ class Stunti_Cache_Backend_Mongo extends Zend_Cache_Backend implements Zend_Cach
      *
      * @param array $tags array of tags
      * @return array array of any matching cache ids (string)
-     */    
+     */
     public function getIdsMatchingAnyTags($tags = array()) {
-        $res =  $this->_collection->find(array( 't' => array( '$in' => $tags ) ));
-        
+        $cursor =  $this->_collection->find(array( 't' => array( '$in' => $tags ) ));
+
         $ret = array();
         while ($tmp = $cursor->getNext()) {
             $ret[] = $tmp['_id'];
         }
-        
-        return $ret;        
+
+        return $ret;
     }
-    
+
     /**
      * No way to find the remaining space right now. So retrun 0.
      *
      * @throws Zend_Cache_Exception
      * @return int integer between 0 and 100
-     */    
+     */
     public function getFillingPercentage() {
         return 1;
     }
-    
+
     /**
      * Return an array of metadatas for the given cache id
      *
@@ -359,11 +375,11 @@ class Stunti_Cache_Backend_Mongo extends Zend_Cache_Backend implements Zend_Cach
      *
      * @param string $id cache id
      * @return array array of metadatas (false if the cache id is not found)
-     */    
+     */
     public function getMetadatas($id)
     {
         $cursor = $this->get($id);
-        
+
         if ($tmp = $cursor->getNext()) {
             $data = $tmp['d'];
             $mtime = $tmp['created_at'];
@@ -374,17 +390,17 @@ class Stunti_Cache_Backend_Mongo extends Zend_Cache_Backend implements Zend_Cach
                 'mtime' => $mtime
             );
         }
-        
+
         return false;
     }
-    
+
     /**
      * Give (if possible) an extra lifetime to the given cache id
      *
      * @param string $id cache id
      * @param int $extraLifetime
      * @return boolean true if ok
-     */    
+     */
    public function touch($id, $extraLifetime)
     {
         $cursor = $this->get($id);
@@ -396,15 +412,15 @@ class Stunti_Cache_Backend_Mongo extends Zend_Cache_Backend implements Zend_Cach
             $newLifetime = $lifetime - (time() - $mtime) + $extraLifetime;
             if ($newLifetime <=0) {
                 return false;
-            } 
-            
+            }
+
             // #ZF-5702 : we try replace() first becase set() seems to be slower
             $result = $this->set($id, $data, $newLifetime,$tags);
             return $result;
         }
         return false;
     }
-    
+
     /**
      * Return an associative array of capabilities (booleans) of the backend
      *
@@ -430,7 +446,7 @@ class Stunti_Cache_Backend_Mongo extends Zend_Cache_Backend implements Zend_Cach
             'get_list' => true
         );
     }
-    
+
     /**
      * @param int $id
      * @param array $data
@@ -440,15 +456,32 @@ class Stunti_Cache_Backend_Mongo extends Zend_Cache_Backend implements Zend_Cach
      */
     function set($id, $data, $lifetime, $tags)
     {
-        return $this->_collection->save(array('_id'  => $id, 
-            								 'd'              => $data,
-                                             'created_at'     => time(),
-                                             'l'              => $lifetime,
-                                             't'		 	  => $tags
-                                        ));
+        try {
 
-    }   
-    
+        $success = $this->_collection->update(    array('_id'  => $id),
+                                                  array(
+                                                  		 '_id'  => $id,
+                        								 'd'              => $data,
+                                                         'created_at'     => time(),
+                                                         'l'              => $lifetime,
+                                                         't'              => $tags),
+                                                  array('safe' => true,
+                                                        'upsert' => true)
+                                            );
+
+
+        // create an index on 'x' ascending
+        $this->_collection->ensureIndex(array('t' => 1));
+        $this->_collection->ensureIndex(array('created_at' => 1));
+
+        }
+        catch(Exception $e){
+            throw $e;
+        }
+        return $success;
+
+    }
+
     /**
      * @param int $id
      * @return array|false
@@ -456,6 +489,6 @@ class Stunti_Cache_Backend_Mongo extends Zend_Cache_Backend implements Zend_Cach
     function get($id)
     {
        return $this->_collection->find(array('_id' => $id));
-       
-    }    
+
+    }
 }

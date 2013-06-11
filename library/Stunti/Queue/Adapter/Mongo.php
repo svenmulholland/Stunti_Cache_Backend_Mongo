@@ -1,4 +1,6 @@
 <?php
+namespace Stunti\Queue\Adapter;
+
 /**
  * Zend Framework
  *
@@ -23,7 +25,6 @@
 /**
  * @see Zend_Queue_Adapter_AdapterAbstract
  */
-//require_once 'Zend/Queue/Adapter/AdapterAbstract.php';
 
 /**
  * Class for using connecting to a Zend_collection-based queuing system
@@ -34,7 +35,7 @@
  * @copyright  Copyright (c) 2005-2009 Zend Technologies USA Inc. (http://www.zend.com)
  * @license    http://framework.zend.com/license/new-bsd     New BSD License
  */
-class Stunti_Queue_Adapter_Mongo extends Zend_Queue_Adapter_AdapterAbstract
+class Mongo extends Zend_Queue_Adapter_AdapterAbstract
 {
     const DEFAULT_HOST = '127.0.0.1';
     const DEFAULT_PORT = 27017;
@@ -42,12 +43,12 @@ class Stunti_Queue_Adapter_Mongo extends Zend_Queue_Adapter_AdapterAbstract
     const DEFAULT_PERSISTENT = true;
     const DEFAULT_DBNAME = 'Db_Queue';
     const DEFAULT_COLLECTION = 'queue';
-    
-    
+
+
     protected $_conn;
     protected $_db;
     protected $_collection;
-        
+
     /**
      * @var string
      */
@@ -72,7 +73,6 @@ class Stunti_Queue_Adapter_Mongo extends Zend_Queue_Adapter_AdapterAbstract
     public function __construct($options, Zend_Queue $queue = null)
     {
         if (!extension_loaded('mongo')) {
-            require_once 'Zend/Queue/Exception.php';
             throw new Zend_Queue_Exception('Mongo extension does not appear to be loaded');
         }
 
@@ -100,7 +100,7 @@ class Stunti_Queue_Adapter_Mongo extends Zend_Queue_Adapter_AdapterAbstract
         }
         $options = $this->_options;
         $this->_conn       = new Mongo($this->_options['host'], $this->_options['port'], $this->_options['persistent']);
-        
+
         $this->_db         = $this->_conn->selectDB($this->_options['dbname']);
         $result = $this->_collection = $this->_db->selectCollection($this->_options['collection']);
 
@@ -262,7 +262,6 @@ class Stunti_Queue_Adapter_Mongo extends Zend_Queue_Adapter_AdapterAbstract
         }
 
         if (!$this->isExists($queue->getName())) {
-            require_once 'Zend/Queue/Exception.php';
             throw new Zend_Queue_Exception('Queue does not exist:' . $queue->getName());
         }
 
@@ -271,16 +270,16 @@ class Stunti_Queue_Adapter_Mongo extends Zend_Queue_Adapter_AdapterAbstract
         $recurring_interval = $object->recurring_interval;
         $force = $object->force;
         unset($object->execute_at);
-        unset($object->recurring_interval);        
-        unset($object->force);        
-        
+        unset($object->recurring_interval);
+        unset($object->force);
+
         $message = (string) serialize($object);
         //try to find if the process exists already
         if (!$force && $this->_collection->findOne(array('md5' => md5($message)))) {
             return false;
         }
-        
-        
+
+
         $data    = array(
             'handle'             => null,
             'body'               => $message,
@@ -301,10 +300,7 @@ class Stunti_Queue_Adapter_Mongo extends Zend_Queue_Adapter_AdapterAbstract
         );
 
         $classname = $queue->getMessageClass();
-        if (!class_exists($classname)) {
-            require_once 'Zend/Loader.php';
-            Zend_Loader::loadClass($classname);
-        }
+
         return new $classname($options);
     }
 
