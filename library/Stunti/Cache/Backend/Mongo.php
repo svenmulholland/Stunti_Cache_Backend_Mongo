@@ -62,7 +62,7 @@ class Mongo extends \Zend_Cache_Backend implements \Zend_Cache_Backend_ExtendedI
     public function __construct($options)
     {
         if (!extension_loaded('mongo')) {
-            Zend_Cache::throwException('The MongoDB extension must be loaded for using this backend !');
+            \Zend_Cache::throwException('The MongoDB extension must be loaded for using this backend !');
         }
         parent::__construct($options);
 
@@ -188,30 +188,30 @@ class Mongo extends \Zend_Cache_Backend implements \Zend_Cache_Backend_ExtendedI
      * @throws Zend_Cache_Exception
      * @return boolean True if no problem
      */
-    public function clean($mode = Zend_Cache::CLEANING_MODE_ALL, $tags = array())
+    public function clean($mode = \Zend_Cache::CLEANING_MODE_ALL, $tags = array())
     {
         switch ($mode) {
-            case Zend_Cache::CLEANING_MODE_ALL:
+            case \Zend_Cache::CLEANING_MODE_ALL:
                 return $this->_collection->remove();
                 break;
-            case Zend_Cache::CLEANING_MODE_OLD:
+            case \Zend_Cache::CLEANING_MODE_OLD:
                 //$res = $this->_instance->findOneCond(array('$where' => new MongoCode('function() { return (this.l + this.created_at) < '.(time()-1).'; }')));
                 //var_dump($res);exit;
                 return $this->_collection->remove(array('$where' => new MongoCode('function() { return (this.l + this.created_at) < '.(time()-1).'; }')));
                 break;
-            case Zend_Cache::CLEANING_MODE_MATCHING_TAG:
+            case \Zend_Cache::CLEANING_MODE_MATCHING_TAG:
                 return $this->_collection->remove(array( 't' => array( '$all' => $tags ) ));
                 break;
-            case Zend_Cache::CLEANING_MODE_NOT_MATCHING_TAG:
+            case \Zend_Cache::CLEANING_MODE_NOT_MATCHING_TAG:
                 return $this->_collection->remove(array( 't' => array( '$nin' => $tags ) ));
                 break;
-            case Zend_Cache::CLEANING_MODE_MATCHING_ANY_TAG:
+            case \Zend_Cache::CLEANING_MODE_MATCHING_ANY_TAG:
                 //find all tags and remove them
                 //$this->_log(self::TAGS_UNSUPPORTED_BY_CLEAN_OF_MEMCACHED_BACKEND);
                 return $this->_collection->remove(array( 't' => array( '$in' => $tags ) ));
                 break;
                default:
-                Zend_Cache::throwException('Invalid mode for clean() method');
+                \Zend_Cache::throwException('Invalid mode for clean() method');
                    break;
         }
     }

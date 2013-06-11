@@ -70,10 +70,10 @@ class Mongo extends \Zend_Queue_Adapter_AdapterAbstract
      * @param  null|Zend_Queue $queue
      * @return void
      */
-    public function __construct($options, Zend_Queue $queue = null)
+    public function __construct($options, \Zend_Queue $queue = null)
     {
         if (!extension_loaded('mongo')) {
-            throw new Zend_Queue_Exception('Mongo extension does not appear to be loaded');
+            throw new \Zend_Queue_Exception('Mongo extension does not appear to be loaded');
         }
 
         parent::__construct($options, $queue);
@@ -105,8 +105,7 @@ class Mongo extends \Zend_Queue_Adapter_AdapterAbstract
         $result = $this->_collection = $this->_db->selectCollection($this->_options['collection']);
 
         if ($result === false) {
-            require_once 'Zend/Queue/Exception.php';
-            throw new Zend_Queue_Exception('Could not connect to Mongo');
+            throw new \Zend_Queue_Exception('Could not connect to Mongo');
         }
 
         $this->_host = $options['host'];
@@ -235,7 +234,7 @@ class Mongo extends \Zend_Queue_Adapter_AdapterAbstract
      * @return integer
      * @throws Zend_Queue_Exception (not supported)
      */
-    public function count(Zend_Queue $queue=null)
+    public function count(\Zend_Queue $queue=null)
     {
         if ($queue !== null) {
             return $queue->count();
@@ -255,14 +254,14 @@ class Mongo extends \Zend_Queue_Adapter_AdapterAbstract
      * @return Zend_Queue_Message
      * @throws Zend_Queue_Exception
      */
-    public function send($message, Zend_Queue $queue=null)
+    public function send($message, \Zend_Queue $queue=null)
     {
         if ($queue === null) {
             $queue = $this->_queue;
         }
 
         if (!$this->isExists($queue->getName())) {
-            throw new Zend_Queue_Exception('Queue does not exist:' . $queue->getName());
+            throw new \Zend_Queue_Exception('Queue does not exist:' . $queue->getName());
         }
 
         $object = unserialize($message);
@@ -290,8 +289,7 @@ class Mongo extends \Zend_Queue_Adapter_AdapterAbstract
         $result = $this->_collection->insert($data);
 
         if ($result === false) {
-            require_once 'Zend/Queue/Exception.php';
-            throw new Zend_Queue_Exception('failed to insert message into queue:' . $queue->getName());
+            throw new \Zend_Queue_Exception('failed to insert message into queue:' . $queue->getName());
         }
 
         $options = array(
@@ -313,7 +311,7 @@ class Mongo extends \Zend_Queue_Adapter_AdapterAbstract
      * @return Zend_Queue_Message_Iterator
      * @throws Zend_Queue_Exception
      */
-    public function receive($maxMessages=null, $timeout=null, Zend_Queue $queue=null)
+    public function receive($maxMessages=null, $timeout=null, \Zend_Queue $queue=null)
     {
         if ($maxMessages === null) {
             $maxMessages = 1;
@@ -342,10 +340,6 @@ class Mongo extends \Zend_Queue_Adapter_AdapterAbstract
         );
 
         $classname = $queue->getMessageSetClass();
-        if (!class_exists($classname)) {
-            require_once 'Zend/Loader.php';
-            Zend_Loader::loadClass($classname);
-        }
         return new $classname($options);
     }
 
@@ -359,7 +353,7 @@ class Mongo extends \Zend_Queue_Adapter_AdapterAbstract
      * @return boolean
      * @throws Zend_Queue_Exception (unsupported)
      */
-    public function deleteMessage(Zend_Queue_Message $message)
+    public function deleteMessage(\Zend_Queue_Message $message)
     {
         return $this->_collection->remove(array('_id' =>new MongoId($message->_id)));
     }
