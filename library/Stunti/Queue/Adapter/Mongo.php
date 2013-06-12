@@ -99,7 +99,7 @@ class Mongo extends \Zend_Queue_Adapter_AdapterAbstract
             $this->_options['collection'] = self::DEFAULT_COLLECTION;
         }
         $options = $this->_options;
-        $this->_conn       = new Mongo($this->_options['host'], $this->_options['port'], $this->_options['persistent']);
+        $this->_conn       = new \Mongo($this->_options['host'], $this->_options['port'], $this->_options['persistent']);
 
         $this->_db         = $this->_conn->selectDB($this->_options['dbname']);
         $result = $this->_collection = $this->_db->selectCollection($this->_options['collection']);
@@ -119,7 +119,7 @@ class Mongo extends \Zend_Queue_Adapter_AdapterAbstract
      */
     public function __destruct()
     {
-        if ($this->_collection instanceof Mongo) {
+        if ($this->_collection instanceof \Mongo) {
             $this->_collection->close();
         }
     }
@@ -355,7 +355,7 @@ class Mongo extends \Zend_Queue_Adapter_AdapterAbstract
      */
     public function deleteMessage(\Zend_Queue_Message $message)
     {
-        return $this->_collection->remove(array('_id' =>new MongoId($message->_id)));
+        return $this->_collection->remove(array('_id' =>new \MongoId($message->_id)));
     }
 
     /********************************************************************

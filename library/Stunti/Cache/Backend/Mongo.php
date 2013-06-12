@@ -73,9 +73,9 @@ class Mongo extends \Zend_Cache_Backend implements \Zend_Cache_Backend_ExtendedI
             $persistId         = 'db_' . rand(1, 2);
 
             if($this->_options['replicaSet'] != false)
-                $this->_conn = new Mongo($this->_options['host'], array('replicaSet' => $this->_options['replicaSet'], 'slaveOkay'=> $this->_options['slaveOK'], "persist" => $persistId));
+                $this->_conn = new \Mongo($this->_options['host'], array('replicaSet' => $this->_options['replicaSet'], 'slaveOkay'=> $this->_options['slaveOK'], "persist" => $persistId));
             else
-                $this->_conn = new Mongo($this->_options['host'], array( "persist" => $persistId));
+                $this->_conn = new \Mongo($this->_options['host'], array( "persist" => $persistId));
 
             $this->_db         = $this->_conn->selectDB($this->_options['dbname']);
             $this->_collection = $this->_db->selectCollection($this->_options['collection']);
@@ -195,9 +195,9 @@ class Mongo extends \Zend_Cache_Backend implements \Zend_Cache_Backend_ExtendedI
                 return $this->_collection->remove();
                 break;
             case \Zend_Cache::CLEANING_MODE_OLD:
-                //$res = $this->_instance->findOneCond(array('$where' => new MongoCode('function() { return (this.l + this.created_at) < '.(time()-1).'; }')));
+                //$res = $this->_instance->findOneCond(array('$where' => new \MongoCode('function() { return (this.l + this.created_at) < '.(time()-1).'; }')));
                 //var_dump($res);exit;
-                return $this->_collection->remove(array('$where' => new MongoCode('function() { return (this.l + this.created_at) < '.(time()-1).'; }')));
+                return $this->_collection->remove(array('$where' => new \MongoCode('function() { return (this.l + this.created_at) < '.(time()-1).'; }')));
                 break;
             case \Zend_Cache::CLEANING_MODE_MATCHING_TAG:
                 return $this->_collection->remove(array( 't' => array( '$all' => $tags ) ));
