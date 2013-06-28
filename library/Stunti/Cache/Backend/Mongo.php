@@ -68,11 +68,11 @@ class Mongo extends \Zend_Cache_Backend implements \Zend_Cache_Backend_ExtendedI
 		$this->_options = array_merge($this->_options, $options);
 
 		try {
-			if ($this->_options['replicaSet'] != false) {
-				$this->_conn = new \MongoClient($this->_options['host'], array('replicaSet' => $this->_options['replicaSet']));
-			} else {
-				$this->_conn = new \MongoClient($this->_options['host']);
-			}
+			if($this->_options['replicaSet'] != false)
+				$this->_conn = new \Mongo($this->_options['host'], array('replicaSet' => $this->_options['replicaSet'], 'slaveOkay'=> $this->_options['slaveOK'], "persist" => $persistId));
+			else
+				$this->_conn = new \Mongo($this->_options['host'], array( "persist" => $persistId));
+
 
 			$this->_db = $this->_conn->selectDB($this->_options['dbname']);
 			$this->_collection = $this->_db->selectCollection($this->_options['collection']);
