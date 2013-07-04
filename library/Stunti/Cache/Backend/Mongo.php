@@ -66,6 +66,7 @@ class Mongo extends \Zend_Cache_Backend implements \Zend_Cache_Backend_ExtendedI
 
 		// Merge the options passed in; overridding any default options
 		$this->_options = array_merge($this->_options, $options);
+		$persistId = 'db_' . rand(1, 2);
 
 		try {
 			if($this->_options['replicaSet'] != false)
