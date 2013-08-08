@@ -46,13 +46,13 @@ class Mongo extends \Zend_Cache_Backend implements \Zend_Cache_Backend_ExtendedI
 	 * @var array available options
 	 */
 	protected $_options = array(
-		'host' => self::DEFAULT_HOST,
-		'port' => self::DEFAULT_PORT,
+		'host'       => self::DEFAULT_HOST,
+		'port'       => self::DEFAULT_PORT,
 		'persistent' => self::DEFAULT_PERSISTENT,
 		'collection' => self::DEFAULT_COLLECTION,
-		'dbname' => self::DEFAULT_DBNAME,
+		'dbname'     => self::DEFAULT_DBNAME,
 		'replicaSet' => self::DEFAULT_REPLICASET,
-		'slaveOK' => self::DEFAULT_SLAVE_OK
+		'slaveOK'    => self::DEFAULT_SLAVE_OK
 	);
 
 	/**
@@ -68,17 +68,32 @@ class Mongo extends \Zend_Cache_Backend implements \Zend_Cache_Backend_ExtendedI
 		$this->_options = array_merge($this->_options, $options);
 		$persistId = 'db_' . rand(1, 2);
 
-		try {
-			if($this->_options['replicaSet'] != false)
-				$this->_conn = new \Mongo($this->_options['host'], array('replicaSet' => $this->_options['replicaSet'], 'slaveOkay'=> $this->_options['slaveOK'], "persist" => $persistId));
-			else
-				$this->_conn = new \Mongo($this->_options['host'], array( "persist" => $persistId));
+		if (version_compare(PHP_VERSION, '5.4.0') >= 0) {
+			try {
+				if ($this->_options['replicaSet'] != false)
+					$this->_conn = new \MongoClient($this->_options['host'], array('replicaSet' => $this->_options['replicaSet'], 'slaveOkay' => $this->_options['slaveOK']));
+				else
+					$this->_conn = new \MongoClient($this->_options['host']);
 
 
-			$this->_db = $this->_conn->selectDB($this->_options['dbname']);
-			$this->_collection = $this->_db->selectCollection($this->_options['collection']);
-		} catch (Exception $e) {
-			throw $e;
+				$this->_db = $this->_conn->selectDB($this->_options['dbname']);
+				$this->_collection = $this->_db->selectCollection($this->_options['collection']);
+			} catch (Exception $e) {
+				throw $e;
+			}
+		} else {
+			try {
+				if ($this->_options['replicaSet'] != false)
+					$this->_conn = new \Mongo($this->_options['host'], array('replicaSet' => $this->_options['replicaSet'], 'slaveOkay' => $this->_options['slaveOK'], "persist" => $persistId));
+				else
+					$this->_conn = new \Mongo($this->_options['host'], array("persist" => $persistId));
+
+
+				$this->_db = $this->_conn->selectDB($this->_options['dbname']);
+				$this->_collection = $this->_db->selectCollection($this->_options['collection']);
+			} catch (Exception $e) {
+				throw $e;
+			}
 		}
 	}
 
@@ -108,8 +123,10 @@ class Mongo extends \Zend_Cache_Backend implements \Zend_Cache_Backend_ExtendedI
 			if ($doNotTestCacheValidity || !$doNotTestCacheValidity && ($tmp['created_at'] + $tmp['l']) >= time()) {
 				return $tmp['d'];
 			}
+
 			return false;
 		}
+
 		return false;
 	}
 
@@ -124,6 +141,7 @@ class Mongo extends \Zend_Cache_Backend implements \Zend_Cache_Backend_ExtendedI
 		if ($tmp = $cursor->getNext()) {
 			return $tmp['created_at'];
 		}
+
 		return false;
 	}
 
@@ -146,6 +164,7 @@ class Mongo extends \Zend_Cache_Backend implements \Zend_Cache_Backend_ExtendedI
 		// #ZF-5702 : we try add() first becase set() seems to be slower
 
 		$result = $this->set($id, $data, $lifetime, $tags);
+
 		return $result;
 	}
 
@@ -241,6 +260,7 @@ class Mongo extends \Zend_Cache_Backend implements \Zend_Cache_Backend_ExtendedI
 		while ($tmp = $cursor->getNext()) {
 			$ret[] = $tmp['_id'];
 		}
+
 		return $ret;
 	}
 
@@ -300,6 +320,7 @@ class Mongo extends \Zend_Cache_Backend implements \Zend_Cache_Backend_ExtendedI
 		while ($tmp = $cursor->getNext()) {
 			$ret[] = $tmp['_id'];
 		}
+
 		return $ret;
 	}
 
@@ -369,10 +390,11 @@ class Mongo extends \Zend_Cache_Backend implements \Zend_Cache_Backend_ExtendedI
 			$data = $tmp['d'];
 			$mtime = $tmp['created_at'];
 			$lifetime = $tmp['l'];
+
 			return array(
 				'expire' => $mtime + $lifetime,
-				'tags' => $tmp['t'],
-				'mtime' => $mtime
+				'tags'   => $tmp['t'],
+				'mtime'  => $mtime
 			);
 		}
 
@@ -400,8 +422,10 @@ class Mongo extends \Zend_Cache_Backend implements \Zend_Cache_Backend_ExtendedI
 
 			// #ZF-5702 : we try replace() first becase set() seems to be slower
 			$result = $this->set($id, $data, $newLifetime, $tags);
+
 			return $result;
 		}
+
 		return false;
 	}
 
@@ -422,11 +446,11 @@ class Mongo extends \Zend_Cache_Backend implements \Zend_Cache_Backend_ExtendedI
 	public function getCapabilities() {
 		return array(
 			'automatic_cleaning' => true,
-			'tags' => true,
-			'expired_read' => true,
-			'priority' => false,
-			'infinite_lifetime' => true,
-			'get_list' => true
+			'tags'               => true,
+			'expired_read'       => true,
+			'priority'           => false,
+			'infinite_lifetime'  => true,
+			'get_list'           => true
 		);
 	}
 
@@ -441,14 +465,14 @@ class Mongo extends \Zend_Cache_Backend implements \Zend_Cache_Backend_ExtendedI
 		try {
 
 			$success = $this->_collection->update(array('_id' => $id),
-												  array(
-													  '_id' => $id,
-													  'd' => $data,
-													  'created_at' => time(),
-													  'l' => $lifetime,
-													  't' => $tags),
-												  array('safe' => true,
-													  'upsert' => true)
+				array(
+					'_id'        => $id,
+					'd'          => $data,
+					'created_at' => time(),
+					'l'          => $lifetime,
+					't'          => $tags),
+				array('safe'   => true,
+				      'upsert' => true)
 			);
 
 
@@ -458,6 +482,7 @@ class Mongo extends \Zend_Cache_Backend implements \Zend_Cache_Backend_ExtendedI
 		} catch (Exception $e) {
 			throw $e;
 		}
+
 		return $success;
 	}
 
