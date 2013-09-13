@@ -71,7 +71,7 @@ class Mongo extends \Zend_Cache_Backend implements \Zend_Cache_Backend_ExtendedI
 		if (version_compare(PHP_VERSION, '5.4.0') >= 0) {
 			try {
 				if ($this->_options['replicaSet'] != false)
-					$this->_conn = new \MongoClient($this->_options['host'], array('replicaSet' => $this->_options['replicaSet'], 'slaveOkay' => $this->_options['slaveOK']));
+					$this->_conn = new \MongoClient($this->_options['host'], array('replicaSet' => $this->_options['replicaSet']));
 				else
 					$this->_conn = new \MongoClient($this->_options['host']);
 
