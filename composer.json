@@ -1,5 +1,5 @@
 {
-    "name": "svenmulholland/Stunti_Cache_Backend_Mongo",
+    "name": "svenmulholland/stunti_cache_backend_mongo",
     "type": "library",
     "description": "This is the PHP port of Stunti_Cache_Backend_Mongo",
     "keywords": ["cache"],
