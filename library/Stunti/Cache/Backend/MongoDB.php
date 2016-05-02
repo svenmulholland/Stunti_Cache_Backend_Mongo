@@ -90,10 +90,12 @@ class MongoDB extends \Zend_Cache_Backend implements \Zend_Cache_Backend_Extende
 	 */
 	public function ___expire($id) {
 		$iterator = $this->get($id);
-		if($tmp = $iterator->current()) {
-			$tmp['l'] = -10;
-			$this->collection->save($tmp);
-			$iterator->next();
+		if($iterator != null) {
+			if($tmp = $iterator->current()) {
+				$tmp['l'] = -10;
+				$this->collection->save($tmp);
+				$iterator->next();
+			}
 		}
 	}
 
@@ -107,15 +109,17 @@ class MongoDB extends \Zend_Cache_Backend implements \Zend_Cache_Backend_Extende
 	 */
 	public function load($id, $doNotTestCacheValidity = false) {
 		$iterator = $this->get($id);
-		if($tmp = $iterator->current()) {
-			if($doNotTestCacheValidity || !$doNotTestCacheValidity && ($tmp['created_at'] + $tmp['l']) >= time()) {
-				return $tmp['d'];
+		if($iterator != null) {
+			if($tmp = $iterator->current()) {
+				if($doNotTestCacheValidity || !$doNotTestCacheValidity && ($tmp['created_at'] + $tmp['l']) >= time()) {
+					return $tmp['d'];
+				}
+
+				return false;
 			}
 
 			return false;
 		}
-
-		return false;
 	}
 
 	/**
@@ -127,8 +131,10 @@ class MongoDB extends \Zend_Cache_Backend implements \Zend_Cache_Backend_Extende
 	 */
 	public function test($id) {
 		$iterator = $this->get($id);
-		if($tmp = $iterator->current()) {
-			return $tmp['created_at'];
+		if($iterator != null) {
+			if($tmp = $iterator->current()) {
+				return $tmp['created_at'];
+			}
 		}
 
 		return false;
@@ -252,17 +258,28 @@ class MongoDB extends \Zend_Cache_Backend implements \Zend_Cache_Backend_Extende
 	 */
 	public function getIds() {
 		$this->lazyInitializeTheConnection();
-		$cursor = $this->collection->find();
-		$iterator = new \IteratorIterator($cursor);
-		$iterator->rewind();
+		$cursor = $this->collection->find(
+			array(),
+			array(
+				'typeMap' => array(
+					'root'     => 'array',
+					'document' => 'array',
+					'array'    => 'array'
+				)
+			)
+		);
+		if($cursor != null) {
+			$iterator = new \IteratorIterator($cursor);
+			$iterator->rewind();
 
-		$ret = array();
-		while($tmp = $cursor->current()) {
-			$ret[] = $tmp['_id'];
-			$iterator->next();
+			$ret = array();
+			while($tmp = $cursor->current()) {
+				$ret[] = $tmp['_id'];
+				$iterator->next();
+			}
+
+			return $ret;
 		}
-
-		return $ret;
 	}
 
 	/**
@@ -292,7 +309,16 @@ class MongoDB extends \Zend_Cache_Backend implements \Zend_Cache_Backend_Extende
             ';
 
 		$res2 = $this->db->command($cmd);
-		$res3 = $this->db->selectCollection($res2['result'])->find();
+		$res3 = $this->db->selectCollection($res2['result'])->find(
+			array(),
+			array(
+				'typeMap' => array(
+					'root'     => 'array',
+					'document' => 'array',
+					'array'    => 'array'
+				)
+			)
+		);
 
 		$res = array();
 		foreach($res3 as $key => $val) {
@@ -321,17 +347,28 @@ class MongoDB extends \Zend_Cache_Backend implements \Zend_Cache_Backend_Extende
 	 */
 	public function getIdsMatchingTags($tags = array()) {
 		$this->lazyInitializeTheConnection();
-		$cursor = $this->collection->find(array('t' => array('$all' => $tags)));
-		$iterator = new \IteratorIterator($cursor);
-		$iterator->rewind();
-		$ret = array();
-		while($tmp = $iterator->current()) {
-			$ret[] = $tmp['_id'];
+		$cursor = $this->collection->find(
+			array('t' => array('$all' => $tags)),
+			array(
+				'typeMap' => array(
+					'root'     => 'array',
+					'document' => 'array',
+					'array'    => 'array'
+				)
+			)
+		);
+		if($cursor != null) {
+			$iterator = new \IteratorIterator($cursor);
+			$iterator->rewind();
+			$ret = array();
+			while($tmp = $iterator->current()) {
+				$ret[] = $tmp['_id'];
 
-			$iterator->next();
+				$iterator->next();
+			}
+
+			return $ret;
 		}
-
-		return $ret;
 	}
 
 	/**
@@ -345,18 +382,29 @@ class MongoDB extends \Zend_Cache_Backend implements \Zend_Cache_Backend_Extende
 	 */
 	public function getIdsNotMatchingTags($tags = array()) {
 		$this->lazyInitializeTheConnection();
-		$cursor = $this->collection->find(array('t' => array('$nin' => $tags)));
-		$iterator = new \IteratorIterator($cursor);
-		$iterator->rewind();
+		$cursor = $this->collection->find(
+			array('t' => array('$nin' => $tags)),
+			array(
+				'typeMap' => array(
+					'root'     => 'array',
+					'document' => 'array',
+					'array'    => 'array'
+				)
+			)
+		);
+		if($cursor != null) {
+			$iterator = new \IteratorIterator($cursor);
+			$iterator->rewind();
 
-		$ret = array();
+			$ret = array();
 
-		while($tmp = $iterator->current()) {
-			$ret[] = $tmp['_id'];
-			$iterator->next();
+			while($tmp = $iterator->current()) {
+				$ret[] = $tmp['_id'];
+				$iterator->next();
+			}
+
+			return $ret;
 		}
-
-		return $ret;
 	}
 
 	/**
@@ -370,17 +418,28 @@ class MongoDB extends \Zend_Cache_Backend implements \Zend_Cache_Backend_Extende
 	 */
 	public function getIdsMatchingAnyTags($tags = array()) {
 		$this->lazyInitializeTheConnection();
-		$cursor = $this->collection->find(array('t' => array('$in' => $tags)));
-		$iterator = new \IteratorIterator($cursor);
-		$iterator->rewind();
+		$cursor = $this->collection->find(
+			array('t' => array('$in' => $tags)),
+			array(
+				'typeMap' => array(
+					'root'     => 'array',
+					'document' => 'array',
+					'array'    => 'array'
+				)
+			)
+		);
+		if($cursor != null) {
+			$iterator = new \IteratorIterator($cursor);
+			$iterator->rewind();
 
-		$ret = array();
-		while($tmp = $iterator->current()) {
-			$ret[] = $tmp['_id'];
-			$iterator->next();
+			$ret = array();
+			while($tmp = $iterator->current()) {
+				$ret[] = $tmp['_id'];
+				$iterator->next();
+			}
+
+			return $ret;
 		}
-
-		return $ret;
 	}
 
 	/**
@@ -407,16 +466,17 @@ class MongoDB extends \Zend_Cache_Backend implements \Zend_Cache_Backend_Extende
 	 */
 	public function getMetadatas($id) {
 		$iterator = $this->get($id);
-		if($tmp = $iterator->current()) {
-			$data = $tmp['d'];
-			$mtime = $tmp['created_at'];
-			$lifetime = $tmp['l'];
+		if($iterator != null) {
+			if($tmp = $iterator->current()) {
+				$mtime = $tmp['created_at'];
+				$lifetime = $tmp['l'];
 
-			return array(
-				'expire' => $mtime + $lifetime,
-				'tags'   => $tmp['t'],
-				'mtime'  => $mtime
-			);
+				return array(
+					'expire' => $mtime + $lifetime,
+					'tags'   => $tmp['t'],
+					'mtime'  => $mtime
+				);
+			}
 		}
 
 		return false;
@@ -432,20 +492,22 @@ class MongoDB extends \Zend_Cache_Backend implements \Zend_Cache_Backend_Extende
 	 */
 	public function touch($id, $extraLifetime) {
 		$iterator = $this->get($id);
-		if($tmp = $iterator->current()) {
-			$data = $tmp['d'];
-			$mtime = $tmp['created_at'];
-			$lifetime = $tmp['l'];
-			$tags = $tmp['t'];
-			$newLifetime = $lifetime - (time() - $mtime) + $extraLifetime;
-			if($newLifetime <= 0) {
-				return false;
+		if($iterator != null) {
+			if($tmp = $iterator->current()) {
+				$data = $tmp['d'];
+				$mtime = $tmp['created_at'];
+				$lifetime = $tmp['l'];
+				$tags = $tmp['t'];
+				$newLifetime = $lifetime - (time() - $mtime) + $extraLifetime;
+				if($newLifetime <= 0) {
+					return false;
+				}
+
+				// #ZF-5702 : we try replace() first becase set() seems to be slower
+				$result = $this->set($id, $data, $newLifetime, $tags);
+
+				return $result;
 			}
-
-			// #ZF-5702 : we try replace() first becase set() seems to be slower
-			$result = $this->set($id, $data, $newLifetime, $tags);
-
-			return $result;
 		}
 
 		return false;
@@ -518,9 +580,22 @@ class MongoDB extends \Zend_Cache_Backend implements \Zend_Cache_Backend_Extende
 	function get($id) {
 		$this->lazyInitializeTheConnection();
 
-		$cursor = $this->collection->findOne(array('_id' => $id));
-		$it = new \IteratorIterator($cursor);
-		$it->rewind();
+		$cursor = $this->collection->findOne(
+			array('_id' => $id),
+			array(
+				'typeMap' => array(
+					'root'     => 'array',
+					'document' => 'array',
+					'array'    => 'array'
+				)
+
+			)
+		);
+
+		if($cursor != null) {
+			$it = new \IteratorIterator($cursor);
+			$it->rewind();
+		}
 
 		return $it;
 	}
@@ -535,13 +610,12 @@ class MongoDB extends \Zend_Cache_Backend implements \Zend_Cache_Backend_Extende
 				}
 
 				$this->db = $this->client->selectDatabase(
+					$this->options['dbname'],
 					array(
 						'readPreference' => new ReadPreference(ReadPreference::RP_PRIMARY),
 						'writeConcern '  => new WriteConcern(WriteConcern::MAJORITY)
 					)
 				);
-
-				$this->db = $this->client->selectDB($this->options['dbname']);
 				$this->collection = $this->db->selectCollection($this->options['collection']);
 			} catch(Exception $e) {
 				throw $e;
