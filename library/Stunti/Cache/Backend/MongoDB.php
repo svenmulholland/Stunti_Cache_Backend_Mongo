@@ -201,7 +201,7 @@ class MongoDB extends \Zend_Cache_Backend implements \Zend_Cache_Backend_Extende
 		$this->lazyInitializeTheConnection();
 		switch($mode) {
 			case \Zend_Cache::CLEANING_MODE_ALL:
-				return $this->collection->deleteMany();
+				return $this->collection->deleteMany(array());
 				break;
 			case \Zend_Cache::CLEANING_MODE_OLD:
 				//$res = $this->_instance->findOneCond(array('$where' => new \MongoCode('function() { return (this.l + this.created_at) < '.(time()-1).'; }')));
