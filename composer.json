@@ -1,12 +1,17 @@
 {
-    "name": "svenmulholland/stunti_cache_backend_mongo",
-    "type": "library",
-    "description": "This is the PHP port of Stunti_Cache_Backend_Mongo",
-    "keywords": ["cache"],
-    "license": "BSD",
-    "autoload": {
-        "psr-0": {
-            "Stunti": "library/"
-        }
+  "name": "svenmulholland/stunti_cache_backend_mongo",
+  "type": "library",
+  "description": "This is the PHP port of Stunti_Cache_Backend_Mongo",
+  "keywords": [
+    "cache"
+  ],
+  "license": "BSD",
+  "autoload": {
+    "psr-0": {
+      "Stunti": "library/"
     }
+  },
+  "require": {
+    "mongodb/mongodb": "1.1.x-dev"
+  }
 }
