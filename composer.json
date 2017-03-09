@@ -12,6 +12,6 @@
     }
   },
   "require": {
-    "mongodb/mongodb": "1.1.x-dev"
+    "mongodb/mongodb": "1.1.*"
   }
 }
