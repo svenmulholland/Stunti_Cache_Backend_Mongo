@@ -573,15 +573,7 @@ class MongoDB extends \Zend_Cache_Backend implements \Zend_Cache_Backend_Extende
 		$this->lazyInitializeTheConnection();
 
 		$data = $this->collection->findOne(
-			array('_id' => $id),
-			array(
-				'typeMap' => array(
-					'root'     => 'array',
-					'document' => 'array',
-					'array'    => 'array'
-				)
-
-			)
+			array('_id' => $id)
 		);
 
 		return $data;
