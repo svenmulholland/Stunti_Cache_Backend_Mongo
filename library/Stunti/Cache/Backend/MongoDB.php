@@ -1,9 +1,9 @@
 <?php
 namespace Stunti\Cache\Backend;
 
-	/**
-	 * @see Zend_Cache_Backend
-	 */
+/**
+ * @see Zend_Cache_Backend
+ */
 
 /**
  * @see Zend_Cache_Backend_ExtendedInterface
@@ -89,13 +89,10 @@ class MongoDB extends \Zend_Cache_Backend implements \Zend_Cache_Backend_Extende
 	 * @return void
 	 */
 	public function ___expire($id) {
-		$iterator = $this->get($id);
-		if($iterator != null) {
-			if($tmp = $iterator->current()) {
-				$tmp['l'] = -10;
-				$this->collection->save($tmp);
-				$iterator->next();
-			}
+		$dataFromMongoDB = $this->get($id);
+		if($dataFromMongoDB != null) {
+			$dataFromMongoDB['l'] = -10;
+			$this->collection->save($dataFromMongoDB);
 		}
 	}
 
@@ -108,12 +105,10 @@ class MongoDB extends \Zend_Cache_Backend implements \Zend_Cache_Backend_Extende
 	 * @return string|false cached datas
 	 */
 	public function load($id, $doNotTestCacheValidity = false) {
-		$iterator = $this->get($id);
-		if($iterator != null) {
-			if($tmp = $iterator->current()) {
-				if($doNotTestCacheValidity || !$doNotTestCacheValidity && ($tmp['created_at'] + $tmp['l']) >= time()) {
-					return $tmp['d'];
-				}
+		$dataFromMongoDB = $this->get($id);
+		if($dataFromMongoDB != null) {
+			if($doNotTestCacheValidity || !$doNotTestCacheValidity && ($dataFromMongoDB['created_at'] + $dataFromMongoDB['l']) >= time()) {
+				return $dataFromMongoDB['d'];
 
 				return false;
 			}
@@ -130,11 +125,9 @@ class MongoDB extends \Zend_Cache_Backend implements \Zend_Cache_Backend_Extende
 	 * @return mixed|false (a cache is not available) or "last modified" timestamp (int) of the available cache record
 	 */
 	public function test($id) {
-		$iterator = $this->get($id);
-		if($iterator != null) {
-			if($tmp = $iterator->current()) {
-				return $tmp['created_at'];
-			}
+		$dataFromMongoDB = $this->get($id);
+		if($dataFromMongoDB != null) {
+			return $dataFromMongoDB['created_at'];
 		}
 
 		return false;
@@ -465,18 +458,16 @@ class MongoDB extends \Zend_Cache_Backend implements \Zend_Cache_Backend_Extende
 	 * @return array array of metadatas (false if the cache id is not found)
 	 */
 	public function getMetadatas($id) {
-		$iterator = $this->get($id);
-		if($iterator != null) {
-			if($tmp = $iterator->current()) {
-				$mtime = $tmp['created_at'];
-				$lifetime = $tmp['l'];
+		$dataFromMongoDB = $this->get($id);
+		if($dataFromMongoDB != null) {
+			$mtime = $dataFromMongoDB['created_at'];
+			$lifetime = $dataFromMongoDB['l'];
 
-				return array(
-					'expire' => $mtime + $lifetime,
-					'tags'   => $tmp['t'],
-					'mtime'  => $mtime
-				);
-			}
+			return array(
+				'expire' => $mtime + $lifetime,
+				'tags'   => $dataFromMongoDB['t'],
+				'mtime'  => $mtime
+			);
 		}
 
 		return false;
@@ -491,23 +482,21 @@ class MongoDB extends \Zend_Cache_Backend implements \Zend_Cache_Backend_Extende
 	 * @return boolean true if ok
 	 */
 	public function touch($id, $extraLifetime) {
-		$iterator = $this->get($id);
-		if($iterator != null) {
-			if($tmp = $iterator->current()) {
-				$data = $tmp['d'];
-				$mtime = $tmp['created_at'];
-				$lifetime = $tmp['l'];
-				$tags = $tmp['t'];
-				$newLifetime = $lifetime - (time() - $mtime) + $extraLifetime;
-				if($newLifetime <= 0) {
-					return false;
-				}
-
-				// #ZF-5702 : we try replace() first becase set() seems to be slower
-				$result = $this->set($id, $data, $newLifetime, $tags);
-
-				return $result;
+		$dataFromMongoDB = $this->get($id);
+		if($dataFromMongoDB != null) {
+			$data = $dataFromMongoDB['d'];
+			$mtime = $dataFromMongoDB['created_at'];
+			$lifetime = $dataFromMongoDB['l'];
+			$tags = $dataFromMongoDB['t'];
+			$newLifetime = $lifetime - (time() - $mtime) + $extraLifetime;
+			if($newLifetime <= 0) {
+				return false;
 			}
+
+			// #ZF-5702 : we try replace() first becase set() seems to be slower
+			$result = $this->set($id, $data, $newLifetime, $tags);
+
+			return $result;
 		}
 
 		return false;
@@ -553,19 +542,22 @@ class MongoDB extends \Zend_Cache_Backend implements \Zend_Cache_Backend_Extende
 			$success = $this->collection->updateOne(
 				array('_id' => $id),
 				array(
-					'_id'        => $id,
-					'd'          => $data,
-					'created_at' => time(),
-					'l'          => $lifetime,
-					't'          => $tags),
-				array('safe'   => true,
-					  'upsert' => true)
+					'$set' => array(
+						'd'          => $data,
+						'created_at' => time(),
+						'l'          => $lifetime,
+						't'          => $tags
+					)
+				),
+				array(
+					'upsert' => true
+				)
 			);
 
 			// create an index on 'x' ascending
 			$this->collection->createIndex(array('t' => 1));
 			$this->collection->createIndex(array('created_at' => 1));
-		} catch(Exception $e) {
+		} catch(\Exception $e) {
 			throw $e;
 		}
 
@@ -580,7 +572,7 @@ class MongoDB extends \Zend_Cache_Backend implements \Zend_Cache_Backend_Extende
 	function get($id) {
 		$this->lazyInitializeTheConnection();
 
-		$cursor = $this->collection->findOne(
+		$data = $this->collection->findOne(
 			array('_id' => $id),
 			array(
 				'typeMap' => array(
@@ -592,12 +584,7 @@ class MongoDB extends \Zend_Cache_Backend implements \Zend_Cache_Backend_Extende
 			)
 		);
 
-		if($cursor != null) {
-			$it = new \IteratorIterator($cursor);
-			$it->rewind();
-		}
-
-		return $it;
+		return $data;
 	}
 
 	public function lazyInitializeTheConnection() {
@@ -617,7 +604,7 @@ class MongoDB extends \Zend_Cache_Backend implements \Zend_Cache_Backend_Extende
 					)
 				);
 				$this->collection = $this->db->selectCollection($this->options['collection']);
-			} catch(Exception $e) {
+			} catch(\Exception $e) {
 				throw $e;
 			}
 		}
