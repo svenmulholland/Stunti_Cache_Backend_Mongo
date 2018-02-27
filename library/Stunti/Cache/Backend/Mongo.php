@@ -1,13 +1,14 @@
 <?php
+
 namespace Stunti\Cache\Backend;
 
-	/**
-	 * @see Zend_Cache_Backend
-	 */
+/**
+ * @see Zend_Cache_Backend
+ */
 
-	/**
-	 * @see Zend_Cache_Backend_ExtendedInterface
-	 */
+/**
+ * @see Zend_Cache_Backend_ExtendedInterface
+ */
 
 /**
  * @author       Olivier Bregeras (Stunti) (olivier.bregeras@gmail.com)
@@ -19,18 +20,17 @@ namespace Stunti\Cache\Backend;
  */
 class Mongo extends \Zend_Cache_Backend implements \Zend_Cache_Backend_ExtendedInterface {
 
-	const DEFAULT_HOST = '127.0.0.1';
-	const DEFAULT_PORT = 27017;
+	const DEFAULT_HOST       = '127.0.0.1';
+	const DEFAULT_PORT       = 27017;
 	const DEFAULT_PERSISTENT = false;
-	const DEFAULT_DBNAME = 'Db_Cache';
+	const DEFAULT_DBNAME     = 'Db_Cache';
 	const DEFAULT_COLLECTION = 'C_Cache';
-	const DEFAULT_SLAVE_OK = false;
+	const DEFAULT_SLAVE_OK   = false;
 	const DEFAULT_REPLICASET = false;
 
 	protected $_conn;
 	protected $_db;
 	protected $_collection;
-
 
 	/**
 	 * Available options
@@ -154,7 +154,7 @@ class Mongo extends \Zend_Cache_Backend implements \Zend_Cache_Backend_ExtendedI
 	public function remove($id) {
 		$this->lazyInitializeTheConnection();
 
-		return $this->_collection->remove(array( '_id' => $id ));
+		return $this->_collection->remove(array('id' => $id));
 	}
 
 	/**
@@ -179,25 +179,25 @@ class Mongo extends \Zend_Cache_Backend implements \Zend_Cache_Backend_ExtendedI
 	 */
 	public function clean($mode = \Zend_Cache::CLEANING_MODE_ALL, $tags = array()) {
 		$this->lazyInitializeTheConnection();
-		switch ($mode) {
+		switch($mode) {
 			case \Zend_Cache::CLEANING_MODE_ALL:
 				return $this->_collection->remove();
 				break;
 			case \Zend_Cache::CLEANING_MODE_OLD:
 				//$res = $this->_instance->findOneCond(array('$where' => new \MongoCode('function() { return (this.l + this.created_at) < '.(time()-1).'; }')));
 				//var_dump($res);exit;
-				return $this->_collection->remove(array( '$where' => new \MongoCode('function() { return (this.l + this.created_at) < '.(time() - 1).'; }') ));
+				return $this->_collection->remove(array('$where' => new \MongoCode('function() { return (this.l + this.created_at) < ' . (time() - 1) . '; }')));
 				break;
 			case \Zend_Cache::CLEANING_MODE_MATCHING_TAG:
-				return $this->_collection->remove(array( 't' => array( '$all' => $tags ) ));
+				return $this->_collection->remove(array('t' => array('$all' => $tags)));
 				break;
 			case \Zend_Cache::CLEANING_MODE_NOT_MATCHING_TAG:
-				return $this->_collection->remove(array( 't' => array( '$nin' => $tags ) ));
+				return $this->_collection->remove(array('t' => array('$nin' => $tags)));
 				break;
 			case \Zend_Cache::CLEANING_MODE_MATCHING_ANY_TAG:
 				//find all tags and remove them
 				//$this->_log(self::TAGS_UNSUPPORTED_BY_CLEAN_OF_MEMCACHED_BACKEND);
-				return $this->_collection->remove(array( 't' => array( '$in' => $tags ) ));
+				return $this->_collection->remove(array('t' => array('$in' => $tags)));
 				break;
 			default:
 				\Zend_Cache::throwException('Invalid mode for clean() method');
@@ -227,7 +227,7 @@ class Mongo extends \Zend_Cache_Backend implements \Zend_Cache_Backend_ExtendedI
 		$lifetime = $this->getLifetime(false);
 		if($lifetime === null) {
 			// #ZF-4614 : we tranform null to zero to get the maximal lifetime
-			parent::setDirectives(array( 'lifetime' => 0 ));
+			parent::setDirectives(array('lifetime' => 0));
 		}
 	}
 
@@ -240,8 +240,8 @@ class Mongo extends \Zend_Cache_Backend implements \Zend_Cache_Backend_ExtendedI
 		$this->lazyInitializeTheConnection();
 		$cursor = $this->_collection->find();
 		$ret = array();
-		while ($tmp = $cursor->getNext()) {
-			$ret[] = $tmp['_id'];
+		while($tmp = $cursor->getNext()) {
+			$ret[] = $tmp['id'];
 		}
 
 		return $ret;
@@ -277,7 +277,7 @@ class Mongo extends \Zend_Cache_Backend implements \Zend_Cache_Backend_ExtendedI
 		$res3 = $this->_db->selectCollection($res2['result'])->find();
 
 		$res = array();
-		foreach ($res3 as $key => $val) {
+		foreach($res3 as $key => $val) {
 			$res[] = $key;
 		}
 
@@ -303,10 +303,10 @@ class Mongo extends \Zend_Cache_Backend implements \Zend_Cache_Backend_ExtendedI
 	 */
 	public function getIdsMatchingTags($tags = array()) {
 		$this->lazyInitializeTheConnection();
-		$cursor = $this->_collection->find(array( 't' => array( '$all' => $tags ) ));
+		$cursor = $this->_collection->find(array('t' => array('$all' => $tags)));
 		$ret = array();
-		while ($tmp = $cursor->getNext()) {
-			$ret[] = $tmp['_id'];
+		while($tmp = $cursor->getNext()) {
+			$ret[] = $tmp['id'];
 		}
 
 		return $ret;
@@ -323,11 +323,11 @@ class Mongo extends \Zend_Cache_Backend implements \Zend_Cache_Backend_ExtendedI
 	 */
 	public function getIdsNotMatchingTags($tags = array()) {
 		$this->lazyInitializeTheConnection();
-		$cursor = $this->_collection->find(array( 't' => array( '$nin' => $tags ) ));
+		$cursor = $this->_collection->find(array('t' => array('$nin' => $tags)));
 		$ret = array();
 
-		while ($tmp = $cursor->getNext()) {
-			$ret[] = $tmp['_id'];
+		while($tmp = $cursor->getNext()) {
+			$ret[] = $tmp['id'];
 		}
 
 		return $ret;
@@ -344,11 +344,11 @@ class Mongo extends \Zend_Cache_Backend implements \Zend_Cache_Backend_ExtendedI
 	 */
 	public function getIdsMatchingAnyTags($tags = array()) {
 		$this->lazyInitializeTheConnection();
-		$cursor = $this->_collection->find(array( 't' => array( '$in' => $tags ) ));
+		$cursor = $this->_collection->find(array('t' => array('$in' => $tags)));
 
 		$ret = array();
-		while ($tmp = $cursor->getNext()) {
-			$ret[] = $tmp['_id'];
+		while($tmp = $cursor->getNext()) {
+			$ret[] = $tmp['id'];
 		}
 
 		return $ret;
@@ -460,22 +460,22 @@ class Mongo extends \Zend_Cache_Backend implements \Zend_Cache_Backend_ExtendedI
 		$this->lazyInitializeTheConnection();
 		try {
 
-			$success = $this->_collection->update(array( '_id' => $id ),
-			                                      array(
-				                                      '_id'        => $id,
-				                                      'd'          => $data,
-				                                      'created_at' => time(),
-				                                      'l'          => $lifetime,
-				                                      't'          => $tags ),
-			                                      array( 'safe'   => true,
-			                                             'upsert' => true )
+			$success = $this->_collection->update(array('id' => $id),
+												  array(
+													  'id'         => $id,
+													  'd'          => $data,
+													  'created_at' => time(),
+													  'l'          => $lifetime,
+													  't'          => $tags),
+												  array('safe'   => true,
+														'upsert' => true)
 			);
 
-
 			// create an index on 'x' ascending
-			$this->_collection->ensureIndex(array( 't' => 1 ));
-			$this->_collection->ensureIndex(array( 'created_at' => 1 ));
-		} catch (Exception $e) {
+			$this->_collection->ensureIndex(array('id' => 1));
+			$this->_collection->ensureIndex(array('t' => 1));
+			$this->_collection->ensureIndex(array('created_at' => 1));
+		} catch(Exception $e) {
 			throw $e;
 		}
 
@@ -490,39 +490,37 @@ class Mongo extends \Zend_Cache_Backend implements \Zend_Cache_Backend_ExtendedI
 	function get($id) {
 		$this->lazyInitializeTheConnection();
 
-		return $this->_collection->find(array( '_id' => $id ));
+		return $this->_collection->find(array('id' => $id));
 	}
 
 	public function lazyInitializeTheConnection() {
 		if($this->_conn == null) {
-			$persistId = 'db_'.rand(1, 2);
+			$persistId = 'db_' . rand(1, 2);
 
 			if(version_compare(PHP_VERSION, '5.4.0') >= 0) {
 				try {
 					if($this->_options['replicaSet'] != false) {
-						$this->_conn = new \MongoClient($this->_options['host'], array( 'replicaSet' => $this->_options['replicaSet'] ));
+						$this->_conn = new \MongoClient($this->_options['host'], array('replicaSet' => $this->_options['replicaSet']));
 					} else {
 						$this->_conn = new \MongoClient($this->_options['host']);
 					}
 
-
 					$this->_db = $this->_conn->selectDB($this->_options['dbname']);
 					$this->_collection = $this->_db->selectCollection($this->_options['collection']);
-				} catch (Exception $e) {
+				} catch(Exception $e) {
 					throw $e;
 				}
 			} else {
 				try {
 					if($this->_options['replicaSet'] != false) {
-						$this->_conn = new \Mongo($this->_options['host'], array( 'replicaSet' => $this->_options['replicaSet'], 'slaveOkay' => $this->_options['slaveOK'], "persist" => $persistId ));
+						$this->_conn = new \Mongo($this->_options['host'], array('replicaSet' => $this->_options['replicaSet'], 'slaveOkay' => $this->_options['slaveOK'], "persist" => $persistId));
 					} else {
-						$this->_conn = new \Mongo($this->_options['host'], array( "persist" => $persistId ));
+						$this->_conn = new \Mongo($this->_options['host'], array("persist" => $persistId));
 					}
-
 
 					$this->_db = $this->_conn->selectDB($this->_options['dbname']);
 					$this->_collection = $this->_db->selectCollection($this->_options['collection']);
-				} catch (Exception $e) {
+				} catch(Exception $e) {
 					throw $e;
 				}
 			}

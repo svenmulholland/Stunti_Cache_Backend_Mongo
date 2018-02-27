@@ -1,4 +1,5 @@
 <?php
+
 namespace Stunti\Cache\Backend;
 
 /**
@@ -167,7 +168,7 @@ class MongoDB extends \Zend_Cache_Backend implements \Zend_Cache_Backend_Extende
 	public function remove($id) {
 		$this->lazyInitializeTheConnection();
 
-		return $this->collection->deleteOne(array('_id' => $id));
+		return $this->collection->deleteOne(array('id' => $id));
 	}
 
 	/**
@@ -267,7 +268,7 @@ class MongoDB extends \Zend_Cache_Backend implements \Zend_Cache_Backend_Extende
 
 			$ret = array();
 			while($tmp = $cursor->current()) {
-				$ret[] = $tmp['_id'];
+				$ret[] = $tmp['id'];
 				$iterator->next();
 			}
 
@@ -355,7 +356,7 @@ class MongoDB extends \Zend_Cache_Backend implements \Zend_Cache_Backend_Extende
 			$iterator->rewind();
 			$ret = array();
 			while($tmp = $iterator->current()) {
-				$ret[] = $tmp['_id'];
+				$ret[] = $tmp['id'];
 
 				$iterator->next();
 			}
@@ -392,7 +393,7 @@ class MongoDB extends \Zend_Cache_Backend implements \Zend_Cache_Backend_Extende
 			$ret = array();
 
 			while($tmp = $iterator->current()) {
-				$ret[] = $tmp['_id'];
+				$ret[] = $tmp['id'];
 				$iterator->next();
 			}
 
@@ -427,7 +428,7 @@ class MongoDB extends \Zend_Cache_Backend implements \Zend_Cache_Backend_Extende
 
 			$ret = array();
 			while($tmp = $iterator->current()) {
-				$ret[] = $tmp['_id'];
+				$ret[] = $tmp['id'];
 				$iterator->next();
 			}
 
@@ -540,7 +541,7 @@ class MongoDB extends \Zend_Cache_Backend implements \Zend_Cache_Backend_Extende
 		try {
 
 			$success = $this->collection->updateOne(
-				array('_id' => $id),
+				array('id' => $id),
 				array(
 					'$set' => array(
 						'd'          => $data,
@@ -555,6 +556,7 @@ class MongoDB extends \Zend_Cache_Backend implements \Zend_Cache_Backend_Extende
 			);
 
 			// create an index on 'x' ascending
+			$this->collection->createIndex(array('id' => 1));
 			$this->collection->createIndex(array('t' => 1));
 			$this->collection->createIndex(array('created_at' => 1));
 		} catch(\Exception $e) {
@@ -573,7 +575,7 @@ class MongoDB extends \Zend_Cache_Backend implements \Zend_Cache_Backend_Extende
 		$this->lazyInitializeTheConnection();
 
 		$data = $this->collection->findOne(
-			array('_id' => $id)
+			array('id' => $id)
 		);
 
 		return $data;
